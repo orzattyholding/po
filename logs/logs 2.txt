@@ -1,0 +1,37 @@
+ Compiling thiserror v1.0.69
+   Compiling httparse v1.10.1
+    Checking anstyle-parse v1.0.0
+    Checking form_urlencoded v1.2.2
+    Checking po-crypto v0.1.0 (/home/runner/work/po/po/crates/po-crypto)
+    Checking po-transport v0.1.0 (/home/runner/work/po/po/crates/po-transport)
+    Checking idna v1.1.0
+    Checking regex-automata v0.4.14
+   Compiling thiserror-impl v1.0.69
+    Checking colorchoice v1.0.5
+    Checking hashbrown v0.14.5
+    Checking bincode v1.3.3
+    Checking anstyle v1.0.14
+    Checking lazy_static v1.5.0
+    Checking is_terminal_polyfill v1.70.2
+    Checking itoa v1.0.18
+    Checking anstyle-query v1.1.5
+    Checking anstream v1.0.0
+    Checking http v1.4.0
+    Checking sharded-slab v0.1.7
+    Checking po-session v0.1.0 (/home/runner/work/po/po/crates/po-session)
+    Checking matchers v0.2.0
+    Checking dashmap v6.1.0
+error: manual absolute difference pattern without using `abs_diff`
+   --> crates/po-session/src/handshake.rs:171:17
+    |
+171 |     let drift = if now > init.timestamp { now - init.timestamp } else { init.timestamp - now };
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: replace with `abs_diff`: `now.abs_diff(init.timestamp)`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.94.0/index.html#manual_abs_diff
+    = note: `-D clippy::manual-abs-diff` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::manual_abs_diff)]`
+
+    Checking url v2.5.8
+error: could not compile `po-session` (lib) due to 1 previous error
+warning: build failed, waiting for other jobs to finish...
+Error: Process completed with exit code 101.
