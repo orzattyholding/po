@@ -2,8 +2,8 @@
 //!
 //! Each frame type uses 4 bits (lower nibble of byte 0), supporting up to 16 types.
 
-use core::fmt;
 use crate::error::WireError;
+use core::fmt;
 
 /// The type of a PO frame, encoded in the lower 4 bits of the first header byte.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -62,7 +62,10 @@ impl FrameType {
     /// Returns `true` if this is a handshake-related frame.
     #[inline]
     pub const fn is_handshake(&self) -> bool {
-        matches!(self, Self::HandshakeInit | Self::HandshakeReply | Self::HandshakeComplete)
+        matches!(
+            self,
+            Self::HandshakeInit | Self::HandshakeReply | Self::HandshakeComplete
+        )
     }
 
     /// Returns `true` if this is a control frame (non-application data).

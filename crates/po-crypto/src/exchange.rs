@@ -4,10 +4,10 @@
 //! is derived via ECDH and then passed through HKDF-SHA256 to produce
 //! the session encryption key. This provides Perfect Forward Secrecy (PFS).
 
-use x25519_dalek::{EphemeralSecret, PublicKey, StaticSecret};
 use hkdf::Hkdf;
-use sha2::Sha256;
 use rand::rngs::OsRng;
+use sha2::Sha256;
+use x25519_dalek::{EphemeralSecret, PublicKey, StaticSecret};
 use zeroize::Zeroize;
 
 use crate::error::CryptoError;
@@ -60,9 +60,8 @@ impl EphemeralKeypair {
         // Derive session key via HKDF-SHA256
         let hk = Hkdf::<Sha256>::new(None, shared_secret.as_bytes());
         let mut session_key = [0u8; SESSION_KEY_LEN];
-        hk.expand(context, &mut session_key).map_err(|e| {
-            CryptoError::KeyGeneration(format!("HKDF expand failed: {e}"))
-        })?;
+        hk.expand(context, &mut session_key)
+            .map_err(|e| CryptoError::KeyGeneration(format!("HKDF expand failed: {e}")))?;
 
         Ok(SessionKey(session_key))
     }
@@ -99,9 +98,8 @@ impl StaticKeypair {
 
         let hk = Hkdf::<Sha256>::new(None, shared_secret.as_bytes());
         let mut session_key = [0u8; SESSION_KEY_LEN];
-        hk.expand(context, &mut session_key).map_err(|e| {
-            CryptoError::KeyGeneration(format!("HKDF expand failed: {e}"))
-        })?;
+        hk.expand(context, &mut session_key)
+            .map_err(|e| CryptoError::KeyGeneration(format!("HKDF expand failed: {e}")))?;
 
         Ok(SessionKey(session_key))
     }
@@ -174,8 +172,12 @@ mod tests {
 
         let context = b"po-static-v1";
 
-        let key_a = alice.derive_session_key(&bob.public_bytes(), context).unwrap();
-        let key_b = bob.derive_session_key(&alice.public_bytes(), context).unwrap();
+        let key_a = alice
+            .derive_session_key(&bob.public_bytes(), context)
+            .unwrap();
+        let key_b = bob
+            .derive_session_key(&alice.public_bytes(), context)
+            .unwrap();
 
         assert_eq!(key_a.as_bytes(), key_b.as_bytes());
     }
@@ -185,8 +187,12 @@ mod tests {
         let alice = StaticKeypair::generate();
         let bob = StaticKeypair::generate();
 
-        let key1 = alice.derive_session_key(&bob.public_bytes(), b"context-1").unwrap();
-        let key2 = alice.derive_session_key(&bob.public_bytes(), b"context-2").unwrap();
+        let key1 = alice
+            .derive_session_key(&bob.public_bytes(), b"context-1")
+            .unwrap();
+        let key2 = alice
+            .derive_session_key(&bob.public_bytes(), b"context-2")
+            .unwrap();
 
         assert_ne!(key1.as_bytes(), key2.as_bytes());
     }

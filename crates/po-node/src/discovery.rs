@@ -3,18 +3,17 @@
 //! Sends periodic beacons on the broadcast address and listens for
 //! beacons from other PO nodes on the same network.
 
+use dashmap::DashMap;
 use std::net::SocketAddr;
 use std::sync::Arc;
 use tokio::net::UdpSocket;
 use tokio::sync::mpsc;
-use dashmap::DashMap;
 use tracing::{debug, warn};
 
 use po_crypto::identity::NodeId;
 
 /// Default discovery port.
 pub const DISCOVERY_PORT: u16 = 5433;
-
 
 /// A discovered peer on the local network.
 #[derive(Debug, Clone)]
@@ -60,7 +59,9 @@ impl Discovery {
     }
 
     /// Listen for a single beacon and register the peer.
-    pub async fn listen_once(&self) -> Result<Option<DiscoveredPeer>, Box<dyn std::error::Error + Send + Sync>> {
+    pub async fn listen_once(
+        &self,
+    ) -> Result<Option<DiscoveredPeer>, Box<dyn std::error::Error + Send + Sync>> {
         let mut buf = [0u8; 256];
         let (n, addr) = self.socket.recv_from(&mut buf).await?;
         let msg = std::str::from_utf8(&buf[..n])?;

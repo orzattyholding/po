@@ -32,14 +32,20 @@ pub fn encode(value: u64, buf: &mut [u8]) -> Result<usize, WireError> {
     if value <= 63 {
         // 1 byte: prefix 00
         if buf.is_empty() {
-            return Err(WireError::BufferTooSmall { needed: 1, available: 0 });
+            return Err(WireError::BufferTooSmall {
+                needed: 1,
+                available: 0,
+            });
         }
         buf[0] = value as u8;
         Ok(1)
     } else if value <= 16_383 {
         // 2 bytes: prefix 01
         if buf.len() < 2 {
-            return Err(WireError::BufferTooSmall { needed: 2, available: buf.len() });
+            return Err(WireError::BufferTooSmall {
+                needed: 2,
+                available: buf.len(),
+            });
         }
         let v = (value as u16) | 0x4000;
         buf[..2].copy_from_slice(&v.to_be_bytes());
@@ -47,7 +53,10 @@ pub fn encode(value: u64, buf: &mut [u8]) -> Result<usize, WireError> {
     } else if value <= 1_073_741_823 {
         // 4 bytes: prefix 10
         if buf.len() < 4 {
-            return Err(WireError::BufferTooSmall { needed: 4, available: buf.len() });
+            return Err(WireError::BufferTooSmall {
+                needed: 4,
+                available: buf.len(),
+            });
         }
         let v = (value as u32) | 0x8000_0000;
         buf[..4].copy_from_slice(&v.to_be_bytes());
@@ -55,7 +64,10 @@ pub fn encode(value: u64, buf: &mut [u8]) -> Result<usize, WireError> {
     } else {
         // 8 bytes: prefix 11
         if buf.len() < 8 {
-            return Err(WireError::BufferTooSmall { needed: 8, available: buf.len() });
+            return Err(WireError::BufferTooSmall {
+                needed: 8,
+                available: buf.len(),
+            });
         }
         let v = value | 0xC000_0000_0000_0000;
         buf[..8].copy_from_slice(&v.to_be_bytes());
@@ -72,14 +84,20 @@ pub fn encode(value: u64, buf: &mut [u8]) -> Result<usize, WireError> {
 #[inline]
 pub fn decode(buf: &[u8]) -> Result<(u64, usize), WireError> {
     if buf.is_empty() {
-        return Err(WireError::Incomplete { needed_min: 1, available: 0 });
+        return Err(WireError::Incomplete {
+            needed_min: 1,
+            available: 0,
+        });
     }
 
     let prefix = buf[0] >> 6;
     let len = 1usize << prefix; // 1, 2, 4, or 8
 
     if buf.len() < len {
-        return Err(WireError::Incomplete { needed_min: len, available: buf.len() });
+        return Err(WireError::Incomplete {
+            needed_min: len,
+            available: buf.len(),
+        });
     }
 
     let value = match len {
@@ -188,7 +206,10 @@ mod tests {
     #[test]
     fn overflow_rejected() {
         let mut buf = [0u8; 8];
-        assert_eq!(encode(VARINT_MAX + 1, &mut buf), Err(WireError::InvalidVarInt));
+        assert_eq!(
+            encode(VARINT_MAX + 1, &mut buf),
+            Err(WireError::InvalidVarInt)
+        );
     }
 
     #[test]
@@ -205,7 +226,10 @@ mod tests {
         let buf = [0x40]; // prefix 01 means 2 bytes, but only 1 available
         assert!(matches!(
             decode(&buf),
-            Err(WireError::Incomplete { needed_min: 2, available: 1 })
+            Err(WireError::Incomplete {
+                needed_min: 2,
+                available: 1
+            })
         ));
     }
 
@@ -213,7 +237,10 @@ mod tests {
     fn empty_decode() {
         assert!(matches!(
             decode(&[]),
-            Err(WireError::Incomplete { needed_min: 1, available: 0 })
+            Err(WireError::Incomplete {
+                needed_min: 1,
+                available: 0
+            })
         ));
     }
 

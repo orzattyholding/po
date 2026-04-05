@@ -52,9 +52,15 @@ impl FrameFlags {
     #[inline]
     const fn to_bits(self) -> u8 {
         let mut bits = 0u8;
-        if self.control { bits |= FLAG_CONTROL; }
-        if self.priority { bits |= FLAG_PRIORITY; }
-        if self.encrypted { bits |= FLAG_ENCRYPTED; }
+        if self.control {
+            bits |= FLAG_CONTROL;
+        }
+        if self.priority {
+            bits |= FLAG_PRIORITY;
+        }
+        if self.encrypted {
+            bits |= FLAG_ENCRYPTED;
+        }
         bits
     }
 
@@ -94,7 +100,11 @@ impl FrameHeader {
     pub const fn data(channel_id: u32, payload_len: u64) -> Self {
         Self {
             frame_type: FrameType::Data,
-            flags: FrameFlags { control: false, priority: false, encrypted: false },
+            flags: FrameFlags {
+                control: false,
+                priority: false,
+                encrypted: false,
+            },
             channel_id,
             stream_id: 0,
             payload_len,
@@ -106,7 +116,11 @@ impl FrameHeader {
     pub const fn control(frame_type: FrameType) -> Self {
         Self {
             frame_type,
-            flags: FrameFlags { control: true, priority: false, encrypted: false },
+            flags: FrameFlags {
+                control: true,
+                priority: false,
+                encrypted: false,
+            },
             channel_id: 0,
             stream_id: 0,
             payload_len: 0,
@@ -149,7 +163,10 @@ impl FrameHeader {
     pub fn encode(&self, buf: &mut [u8]) -> Result<usize, WireError> {
         let needed = self.encoded_len();
         if buf.len() < needed {
-            return Err(WireError::BufferTooSmall { needed, available: buf.len() });
+            return Err(WireError::BufferTooSmall {
+                needed,
+                available: buf.len(),
+            });
         }
 
         let mut offset = 0;
@@ -180,7 +197,10 @@ impl FrameHeader {
     /// - `WireError::UnknownFrameType` if the type nibble is invalid.
     pub fn decode(buf: &[u8]) -> Result<(Self, usize), WireError> {
         if buf.is_empty() {
-            return Err(WireError::Incomplete { needed_min: 4, available: 0 });
+            return Err(WireError::Incomplete {
+                needed_min: 4,
+                available: 0,
+            });
         }
 
         let byte0 = buf[0];
@@ -254,8 +274,8 @@ impl core::fmt::Display for FrameHeader {
 #[cfg(test)]
 mod tests {
     extern crate alloc;
-    use alloc::format;
     use super::*;
+    use alloc::format;
 
     #[test]
     fn minimal_data_header() {
@@ -307,7 +327,11 @@ mod tests {
 
     #[test]
     fn handshake_type() {
-        for ft in [FrameType::HandshakeInit, FrameType::HandshakeReply, FrameType::HandshakeComplete] {
+        for ft in [
+            FrameType::HandshakeInit,
+            FrameType::HandshakeReply,
+            FrameType::HandshakeComplete,
+        ] {
             let h = FrameHeader {
                 frame_type: ft,
                 flags: FrameFlags::default(),
@@ -327,7 +351,11 @@ mod tests {
     fn large_values() {
         let h = FrameHeader {
             frame_type: FrameType::FileChunk,
-            flags: FrameFlags { control: false, priority: true, encrypted: true },
+            flags: FrameFlags {
+                control: false,
+                priority: true,
+                encrypted: true,
+            },
             channel_id: 1_000_000,
             stream_id: 9_999_999_999,
             payload_len: 4_294_967_296, // 4GB

@@ -1,8 +1,8 @@
+use futures_util::{SinkExt, StreamExt};
+use po_node::Po;
 use std::time::{Duration, Instant};
 use tokio::net::{TcpListener, TcpStream};
-use futures_util::{SinkExt, StreamExt};
 use tokio_tungstenite::tungstenite::Message;
-use po_node::Po;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -32,7 +32,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // ═══════════════════════════════════════════════════════
     println!("----------------------------------------------");
     println!("🧪 TEST 1: Connection Setup Time");
-    
+
     // WS
     let ws_start = Instant::now();
     let stream = TcpStream::connect("127.0.0.1:8080").await?;
@@ -44,33 +44,50 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let po_start = Instant::now();
     let mut po_stream = Po::connect("127.0.0.1:4434").await?;
     let po_setup_time = po_start.elapsed();
-    println!("   PO Setup Time:         {:?} (incluye E2EE handshake)", po_setup_time);
+    println!(
+        "   PO Setup Time:         {:?} (incluye E2EE handshake)",
+        po_setup_time
+    );
 
     let setup_ratio = ws_setup_time.as_secs_f64() / po_setup_time.as_secs_f64();
     if po_setup_time < ws_setup_time {
-        println!("   ✅ PO {:.1}x más rápido (con cifrado incluido)", setup_ratio);
+        println!(
+            "   ✅ PO {:.1}x más rápido (con cifrado incluido)",
+            setup_ratio
+        );
     } else {
-        println!("   ⚠️  WS {:.1}x más rápido (pero sin cifrado)", 1.0 / setup_ratio);
+        println!(
+            "   ⚠️  WS {:.1}x más rápido (pero sin cifrado)",
+            1.0 / setup_ratio
+        );
     }
 
     // ═══════════════════════════════════════════════════════
     // TEST 2: PING / PONG LATENCY
     // ═══════════════════════════════════════════════════════
     println!("----------------------------------------------");
-    println!("🧪 TEST 2: Latency Round-Trip Time (RTT) — {} pings", num_pings);
-    
+    println!(
+        "🧪 TEST 2: Latency Round-Trip Time (RTT) — {} pings",
+        num_pings
+    );
+
     let ping_payload = b"PING_PONG_TEST_64_BYTES_DATA_JUST_TO_HAVE_SOME_PAYLOAD_SIZE_1234".to_vec();
 
     // WS Ping
     let mut ws_ping_time = Duration::default();
     for _ in 0..num_pings {
         let start = Instant::now();
-        ws_stream.send(Message::Binary(ping_payload.clone())).await?;
+        ws_stream
+            .send(Message::Binary(ping_payload.clone()))
+            .await?;
         let _ = ws_stream.next().await.unwrap()?;
         ws_ping_time += start.elapsed();
     }
     let ws_avg_latency = ws_ping_time.as_secs_f64() * 1000.0 / (num_pings as f64);
-    println!("   WebSocket Avg Latency: {:.3} ms (plaintext)", ws_avg_latency);
+    println!(
+        "   WebSocket Avg Latency: {:.3} ms (plaintext)",
+        ws_avg_latency
+    );
 
     // PO Ping
     let mut po_ping_time = Duration::default();
@@ -81,11 +98,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         po_ping_time += start.elapsed();
     }
     let po_avg_latency = po_ping_time.as_secs_f64() * 1000.0 / (num_pings as f64);
-    println!("   PO Avg Latency:        {:.3} ms (encrypted)", po_avg_latency);
+    println!(
+        "   PO Avg Latency:        {:.3} ms (encrypted)",
+        po_avg_latency
+    );
 
     let latency_overhead = po_avg_latency / ws_avg_latency;
-    println!("   📊 Encryption cost:    {:.1}x ({:.3} ms overhead per RTT)", 
-        latency_overhead, po_avg_latency - ws_avg_latency);
+    println!(
+        "   📊 Encryption cost:    {:.1}x ({:.3} ms overhead per RTT)",
+        latency_overhead,
+        po_avg_latency - ws_avg_latency
+    );
 
     // ═══════════════════════════════════════════════════════
     // TEST 3: THROUGHPUT (BULK TRANSFER, 256KB chunks)
@@ -93,25 +116,33 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let chunk_size = 256 * 1024; // 256KB — larger chunks reduce per-frame overhead
 
     println!("----------------------------------------------");
-    println!("🧪 TEST 3: Throughput ({} MB, {}KB chunks)", 
-        payload_size / (1024 * 1024), chunk_size / 1024);
-    
+    println!(
+        "🧪 TEST 3: Throughput ({} MB, {}KB chunks)",
+        payload_size / (1024 * 1024),
+        chunk_size / 1024
+    );
+
     // Generate deterministic payload
     let mut bulk_data = vec![0u8; payload_size];
     for i in 0..payload_size {
         bulk_data[i] = (i % 256) as u8;
     }
-    
+
     // WS Throughput
     let ws_start = Instant::now();
-    ws_stream.send(Message::Binary(b"START_BULK_WS".to_vec())).await?;
+    ws_stream
+        .send(Message::Binary(b"START_BULK_WS".to_vec()))
+        .await?;
     for chunk in bulk_data.chunks(chunk_size) {
         ws_stream.send(Message::Binary(chunk.to_vec())).await?;
     }
     let _ = ws_stream.next().await.unwrap()?;
     let ws_tp_time = ws_start.elapsed();
     let ws_mbps = (payload_size as f64 / 1_048_576.0) / ws_tp_time.as_secs_f64();
-    println!("   WebSocket:  {:>9?}  ({:.1} MB/s, plaintext)", ws_tp_time, ws_mbps);
+    println!(
+        "   WebSocket:  {:>9?}  ({:.1} MB/s, plaintext)",
+        ws_tp_time, ws_mbps
+    );
 
     // PO Throughput
     let po_start = Instant::now();
@@ -122,12 +153,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let _ = po_stream.recv().await?.unwrap();
     let po_tp_time = po_start.elapsed();
     let po_mbps = (payload_size as f64 / 1_048_576.0) / po_tp_time.as_secs_f64();
-    println!("   PO:         {:>9?}  ({:.1} MB/s, E2EE encrypted)", po_tp_time, po_mbps);
+    println!(
+        "   PO:         {:>9?}  ({:.1} MB/s, E2EE encrypted)",
+        po_tp_time, po_mbps
+    );
 
     let tp_ratio = ws_mbps / po_mbps;
     let num_chunks = (payload_size + chunk_size - 1) / chunk_size;
-    println!("   📊 Throughput ratio:   {:.1}x (WS faster, {} chunks × encrypt+frame)", 
-        tp_ratio, num_chunks);
+    println!(
+        "   📊 Throughput ratio:   {:.1}x (WS faster, {} chunks × encrypt+frame)",
+        tp_ratio, num_chunks
+    );
 
     // ═══════════════════════════════════════════════════════
     // SUMMARY
@@ -138,9 +174,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("   PO provides full E2EE (Ed25519 + X25519 + ChaCha20)");
     println!("   WebSocket sends plaintext (no encryption)");
     println!("----------------------------------------------");
-    println!("   Setup:      PO {:>8?} vs WS {:>8?}", po_setup_time, ws_setup_time);
-    println!("   Latency:    PO {:.3}ms    vs WS {:.3}ms", po_avg_latency, ws_avg_latency);
-    println!("   Throughput: PO {:.1} MB/s  vs WS {:.1} MB/s", po_mbps, ws_mbps);
+    println!(
+        "   Setup:      PO {:>8?} vs WS {:>8?}",
+        po_setup_time, ws_setup_time
+    );
+    println!(
+        "   Latency:    PO {:.3}ms    vs WS {:.3}ms",
+        po_avg_latency, ws_avg_latency
+    );
+    println!(
+        "   Throughput: PO {:.1} MB/s  vs WS {:.1} MB/s",
+        po_mbps, ws_mbps
+    );
     println!("==============================================\n");
 
     // Clean shutdown
@@ -154,7 +199,7 @@ async fn run_ws_server(addr: &str) -> Result<(), Box<dyn std::error::Error + Sen
     let listener = TcpListener::bind(&addr).await?;
     if let Ok((stream, _)) = listener.accept().await {
         let mut ws_stream = tokio_tungstenite::accept_async(stream).await?;
-        
+
         let mut bulk_received = 0;
         let target_bulk = 10 * 1024 * 1024;
 
@@ -169,7 +214,9 @@ async fn run_ws_server(addr: &str) -> Result<(), Box<dyn std::error::Error + Sen
                 } else {
                     bulk_received += data.len();
                     if bulk_received >= target_bulk {
-                        ws_stream.send(Message::Binary(b"ACK_BULK".to_vec())).await?;
+                        ws_stream
+                            .send(Message::Binary(b"ACK_BULK".to_vec()))
+                            .await?;
                         bulk_received = 0;
                     }
                 }
@@ -181,7 +228,6 @@ async fn run_ws_server(addr: &str) -> Result<(), Box<dyn std::error::Error + Sen
 
 async fn run_po_server(port: u16) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     if let Ok(mut po) = Po::bind(port).await {
-        
         let mut bulk_received = 0;
         let target_bulk = 10 * 1024 * 1024;
 

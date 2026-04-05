@@ -31,11 +31,11 @@
 #![no_std]
 
 pub mod error;
-pub mod varint;
 pub mod frame_type;
 pub mod header;
+pub mod varint;
 
 // --- Public re-exports for ergonomic usage ---
 pub use error::WireError;
 pub use frame_type::FrameType;
-pub use header::{FrameHeader, FrameFlags};
+pub use header::{FrameFlags, FrameHeader};

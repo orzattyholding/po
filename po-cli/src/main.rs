@@ -1,6 +1,6 @@
 use clap::{Parser, Subcommand};
-use tracing_subscriber::EnvFilter;
 use po_node::Po;
+use tracing_subscriber::EnvFilter;
 
 #[derive(Parser)]
 #[command(
@@ -160,8 +160,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             println!("🔑 Protocol Orzatty — Node Identity\n");
             println!("   Node ID:    {}", identity.node_id().to_hex());
             println!("   Short ID:   {}", identity.node_id().short());
-            println!("   Public Key:  {}", hex_encode(&identity.public_key_bytes()));
-            println!("\n   ℹ️  A new identity is generated each time unless you persist the secret key.");
+            println!(
+                "   Public Key:  {}",
+                hex_encode(&identity.public_key_bytes())
+            );
+            println!(
+                "\n   ℹ️  A new identity is generated each time unless you persist the secret key."
+            );
         }
     }
 

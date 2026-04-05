@@ -1,9 +1,9 @@
 //! Transport abstractions and QUIC implementation for Protocol Orzatty.
 
-pub mod traits;
-pub mod quic;
 pub mod memory;
+pub mod quic;
+pub mod traits;
 
-pub use traits::{AsyncFrameTransport, TransportError};
-pub use quic::{QuicTransport, QuicListener, QuicConfig};
 pub use memory::MemoryTransport;
+pub use quic::{QuicConfig, QuicListener, QuicTransport};
+pub use traits::{AsyncFrameTransport, TransportError};

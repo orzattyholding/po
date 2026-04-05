@@ -46,12 +46,21 @@ impl fmt::Display for WireError {
             Self::BufferTooSmall { needed, available } => {
                 write!(f, "buffer too small: need {needed} bytes, have {available}")
             }
-            Self::Incomplete { needed_min, available } => {
-                write!(f, "incomplete input: need at least {needed_min} bytes, have {available}")
+            Self::Incomplete {
+                needed_min,
+                available,
+            } => {
+                write!(
+                    f,
+                    "incomplete input: need at least {needed_min} bytes, have {available}"
+                )
             }
             Self::InvalidVarInt => write!(f, "malformed VarInt encoding"),
             Self::UnknownFrameType(t) => write!(f, "unknown frame type: {t:#04x}"),
-            Self::PayloadTooLarge { declared, max_allowed } => {
+            Self::PayloadTooLarge {
+                declared,
+                max_allowed,
+            } => {
                 write!(f, "payload too large: {declared} bytes (max {max_allowed})")
             }
         }

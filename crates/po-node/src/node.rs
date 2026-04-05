@@ -19,11 +19,11 @@
 //! }
 //! ```
 
-use std::net::SocketAddr;
 use po_crypto::identity::Identity;
-use po_transport::quic::{QuicTransport, QuicListener, QuicConfig};
-use po_session::state::Session;
 use po_session::channel::channels;
+use po_session::state::Session;
+use po_transport::quic::{QuicConfig, QuicListener, QuicTransport};
+use std::net::SocketAddr;
 
 use crate::peer::PeerInfo;
 
@@ -51,15 +51,19 @@ impl Po {
     /// po.send(b"encrypted hello!").await?;
     /// ```
     pub async fn connect(addr: &str) -> Result<Self, PoError> {
-        let socket_addr: SocketAddr = addr.parse()
+        let socket_addr: SocketAddr = addr
+            .parse()
             .map_err(|e| PoError::Config(format!("invalid address '{addr}': {e}")))?;
 
         let identity = Identity::generate();
-        let mut transport = QuicTransport::connect(socket_addr).await
+        let mut transport = QuicTransport::connect(socket_addr)
+            .await
             .map_err(|e| PoError::Transport(e.to_string()))?;
 
         let mut session = Session::new(Identity::from_bytes(&identity.secret_key_bytes()));
-        session.handshake_initiator(&mut transport).await
+        session
+            .handshake_initiator(&mut transport)
+            .await
             .map_err(|e| PoError::Handshake(e.to_string()))?;
 
         let peer_info = session.peer_node_id().map(|id| PeerInfo {
@@ -94,14 +98,19 @@ impl Po {
         let config = QuicConfig {
             bind_addr: format!("0.0.0.0:{port}").parse().unwrap(),
         };
-        let listener = QuicListener::bind(config).await
+        let listener = QuicListener::bind(config)
+            .await
             .map_err(|e| PoError::Transport(e.to_string()))?;
 
-        let mut transport = listener.accept().await
+        let mut transport = listener
+            .accept()
+            .await
             .map_err(|e| PoError::Transport(e.to_string()))?;
 
         let mut session = Session::new(Identity::from_bytes(&identity.secret_key_bytes()));
-        session.handshake_responder(&mut transport).await
+        session
+            .handshake_responder(&mut transport)
+            .await
             .map_err(|e| PoError::Handshake(e.to_string()))?;
 
         let peer_info = session.peer_node_id().map(|id| PeerInfo {

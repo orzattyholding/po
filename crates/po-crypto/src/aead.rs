@@ -10,13 +10,13 @@
 //! - **Auth tag**: 16 bytes (appended by ChaCha20-Poly1305)
 //! - **Total**: 28 bytes of overhead per frame
 
+use crate::error::CryptoError;
+use crate::exchange::SESSION_KEY_LEN;
 use chacha20poly1305::{
     aead::{Aead, KeyInit, Payload},
     ChaCha20Poly1305, Nonce,
 };
 use zeroize::Zeroize;
-use crate::error::CryptoError;
-use crate::exchange::SESSION_KEY_LEN;
 
 /// Overhead added by encryption: 12-byte nonce + 16-byte auth tag.
 pub const ENCRYPTION_OVERHEAD: usize = 12 + 16;
@@ -33,8 +33,8 @@ pub struct SessionCipher {
 impl SessionCipher {
     /// Create a new session cipher from a derived session key.
     pub fn new(session_key: &[u8; SESSION_KEY_LEN]) -> Self {
-        let cipher = ChaCha20Poly1305::new_from_slice(session_key)
-            .expect("session key is always 32 bytes");
+        let cipher =
+            ChaCha20Poly1305::new_from_slice(session_key).expect("session key is always 32 bytes");
         Self {
             cipher,
             nonce_counter: 0,
@@ -56,9 +56,10 @@ impl SessionCipher {
             aad,
         };
 
-        let ciphertext = self.cipher.encrypt(nonce, payload).map_err(|e| {
-            CryptoError::Encrypt(format!("ChaCha20-Poly1305 encrypt failed: {e}"))
-        })?;
+        let ciphertext = self
+            .cipher
+            .encrypt(nonce, payload)
+            .map_err(|e| CryptoError::Encrypt(format!("ChaCha20-Poly1305 encrypt failed: {e}")))?;
 
         // Pre-allocate final buffer: nonce(12) + ciphertext(plaintext.len() + 16 tag)
         // Single allocation, no intermediate Vec.
@@ -90,7 +91,9 @@ impl SessionCipher {
         };
 
         self.cipher.decrypt(nonce, payload).map_err(|_| {
-            CryptoError::Decrypt("decryption failed: invalid key, corrupted data, or tampered ciphertext".into())
+            CryptoError::Decrypt(
+                "decryption failed: invalid key, corrupted data, or tampered ciphertext".into(),
+            )
         })
     }
 

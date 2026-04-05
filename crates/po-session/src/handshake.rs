@@ -7,14 +7,14 @@
 //!
 //! After step 3, both sides have the same ChaCha20-Poly1305 session key.
 
-use po_crypto::identity::Identity;
-use po_crypto::exchange::EphemeralKeypair;
 use po_crypto::aead::SessionCipher;
-use po_wire::{FrameHeader, FrameType};
+use po_crypto::exchange::EphemeralKeypair;
+use po_crypto::identity::Identity;
 use po_transport::traits::AsyncFrameTransport;
+use po_wire::{FrameHeader, FrameType};
 
 use crate::framer::{Framer, FramerError};
-use crate::message::{HandshakeInit, HandshakeReply, HandshakeComplete};
+use crate::message::{HandshakeComplete, HandshakeInit, HandshakeReply};
 
 use ed25519_dalek::{Signature, VerifyingKey};
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -56,7 +56,8 @@ pub async fn perform_handshake_initiator(
         timestamp,
         signature: signature.to_bytes().to_vec(),
     };
-    let payload = bincode::serialize(&init).map_err(|e| HandshakeError::Serialization(e.to_string()))?;
+    let payload =
+        bincode::serialize(&init).map_err(|e| HandshakeError::Serialization(e.to_string()))?;
     let header = FrameHeader {
         frame_type: FrameType::HandshakeInit,
         flags: po_wire::FrameFlags::default(),
@@ -64,7 +65,10 @@ pub async fn perform_handshake_initiator(
         stream_id: 0,
         payload_len: payload.len() as u64,
     };
-    framer.write_frame(transport, &header, &payload).await.map_err(HandshakeError::Framer)?;
+    framer
+        .write_frame(transport, &header, &payload)
+        .await
+        .map_err(HandshakeError::Framer)?;
 
     // Wait for HandshakeReply
     let (reply_header, reply_payload) = framer
@@ -81,14 +85,18 @@ pub async fn perform_handshake_initiator(
         .map_err(|e| HandshakeError::Serialization(e.to_string()))?;
 
     // Verify responder's signature over [initiator_x25519_pub || responder_x25519_pub]
-    let peer_verifying = VerifyingKey::from_bytes(&reply.ed25519_pubkey)
-        .map_err(|_| HandshakeError::InvalidKey)?;
+    let peer_verifying =
+        VerifyingKey::from_bytes(&reply.ed25519_pubkey).map_err(|_| HandshakeError::InvalidKey)?;
     let mut verify_data = Vec::with_capacity(64);
     verify_data.extend_from_slice(&our_eph_pub);
     verify_data.extend_from_slice(&reply.x25519_ephemeral);
 
     let peer_sig = Signature::from_bytes(
-        reply.signature.as_slice().try_into().map_err(|_| HandshakeError::InvalidSignature)?
+        reply
+            .signature
+            .as_slice()
+            .try_into()
+            .map_err(|_| HandshakeError::InvalidSignature)?,
     );
     if !Identity::verify(&peer_verifying, &verify_data, &peer_sig) {
         return Err(HandshakeError::InvalidSignature);
@@ -102,12 +110,13 @@ pub async fn perform_handshake_initiator(
 
     // Send HandshakeComplete with encrypted confirmation
     let mut cipher = SessionCipher::new(session_key.as_bytes());
-    let confirmation = cipher.encrypt(b"PO_READY", b"handshake-complete")
+    let confirmation = cipher
+        .encrypt(b"PO_READY", b"handshake-complete")
         .map_err(|e| HandshakeError::Encryption(e.to_string()))?;
 
     let complete = HandshakeComplete { confirmation };
-    let complete_payload = bincode::serialize(&complete)
-        .map_err(|e| HandshakeError::Serialization(e.to_string()))?;
+    let complete_payload =
+        bincode::serialize(&complete).map_err(|e| HandshakeError::Serialization(e.to_string()))?;
     let complete_header = FrameHeader {
         frame_type: FrameType::HandshakeComplete,
         flags: po_wire::FrameFlags::default(),
@@ -115,7 +124,9 @@ pub async fn perform_handshake_initiator(
         stream_id: 0,
         payload_len: complete_payload.len() as u64,
     };
-    framer.write_frame(transport, &complete_header, &complete_payload).await
+    framer
+        .write_frame(transport, &complete_header, &complete_payload)
+        .await
         .map_err(HandshakeError::Framer)?;
 
     let peer_node_id = po_crypto::identity::NodeId::from_public_key(&peer_verifying);
@@ -152,15 +163,18 @@ pub async fn perform_handshake_responder(
     }
 
     // Verify initiator's signature over [version || x25519_ephemeral || timestamp]
-    let peer_verifying = VerifyingKey::from_bytes(&init.ed25519_pubkey)
-        .map_err(|_| HandshakeError::InvalidKey)?;
+    let peer_verifying =
+        VerifyingKey::from_bytes(&init.ed25519_pubkey).map_err(|_| HandshakeError::InvalidKey)?;
     let mut verify_data = Vec::with_capacity(41);
     verify_data.push(init.version);
     verify_data.extend_from_slice(&init.x25519_ephemeral);
     verify_data.extend_from_slice(&init.timestamp.to_le_bytes());
 
     let peer_sig = Signature::from_bytes(
-        init.signature.as_slice().try_into().map_err(|_| HandshakeError::InvalidSignature)?
+        init.signature
+            .as_slice()
+            .try_into()
+            .map_err(|_| HandshakeError::InvalidSignature)?,
     );
     if !Identity::verify(&peer_verifying, &verify_data, &peer_sig) {
         return Err(HandshakeError::InvalidSignature);
@@ -168,7 +182,7 @@ pub async fn perform_handshake_responder(
 
     // Timestamp freshness check (allow 30 seconds drift)
     let now = now_millis();
-    let drift = if now > init.timestamp { now - init.timestamp } else { init.timestamp - now };
+    let drift = now.abs_diff(init.timestamp);
     if drift > 30_000 {
         return Err(HandshakeError::TimestampExpired);
     }
@@ -189,8 +203,8 @@ pub async fn perform_handshake_responder(
         x25519_ephemeral: our_eph_pub,
         signature: signature.to_bytes().to_vec(),
     };
-    let payload = bincode::serialize(&reply)
-        .map_err(|e| HandshakeError::Serialization(e.to_string()))?;
+    let payload =
+        bincode::serialize(&reply).map_err(|e| HandshakeError::Serialization(e.to_string()))?;
     let header = FrameHeader {
         frame_type: FrameType::HandshakeReply,
         flags: po_wire::FrameFlags::default(),
@@ -198,7 +212,10 @@ pub async fn perform_handshake_responder(
         stream_id: 0,
         payload_len: payload.len() as u64,
     };
-    framer.write_frame(transport, &header, &payload).await.map_err(HandshakeError::Framer)?;
+    framer
+        .write_frame(transport, &header, &payload)
+        .await
+        .map_err(HandshakeError::Framer)?;
 
     // Derive session key
     let context = build_session_context(&init.ed25519_pubkey, &identity.public_key_bytes());
@@ -222,7 +239,8 @@ pub async fn perform_handshake_responder(
         .map_err(|e| HandshakeError::Serialization(e.to_string()))?;
 
     // Decrypt and verify confirmation
-    let decrypted = cipher.decrypt(&complete.confirmation, b"handshake-complete")
+    let decrypted = cipher
+        .decrypt(&complete.confirmation, b"handshake-complete")
         .map_err(|_| HandshakeError::ConfirmationFailed)?;
 
     if decrypted != b"PO_READY" {

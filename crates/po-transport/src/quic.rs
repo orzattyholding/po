@@ -170,8 +170,9 @@ impl QuicListener {
         let certified_key = rcgen::generate_simple_self_signed(vec!["po-node".into()])?;
 
         let cert_der = CertificateDer::from(certified_key.cert.der().to_vec());
-        let key_der =
-            PrivateKeyDer::Pkcs8(PrivatePkcs8KeyDer::from(certified_key.key_pair.serialize_der()));
+        let key_der = PrivateKeyDer::Pkcs8(PrivatePkcs8KeyDer::from(
+            certified_key.key_pair.serialize_der(),
+        ));
 
         let mut server_crypto = rustls::ServerConfig::builder()
             .with_no_client_auth()

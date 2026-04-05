@@ -21,10 +21,10 @@
 //! }
 //! ```
 
-pub mod node;
 pub mod discovery;
+pub mod node;
 pub mod peer;
 
+pub use discovery::Discovery;
 pub use node::Po;
 pub use peer::PeerInfo;
-pub use discovery::Discovery;

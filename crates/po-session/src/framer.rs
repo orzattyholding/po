@@ -5,8 +5,8 @@
 //! unlike the original implementation which only handled reads.
 
 use bytes::{Bytes, BytesMut};
-use po_wire::{FrameHeader, WireError};
 use po_transport::traits::{AsyncFrameTransport, TransportError};
+use po_wire::{FrameHeader, WireError};
 
 /// Default maximum frame payload size (10 MB).
 const DEFAULT_MAX_FRAME_SIZE: u64 = 10 * 1024 * 1024;
@@ -60,7 +60,9 @@ impl Framer {
         // heap-allocated otherwise.
         let mut combined = Vec::with_capacity(total_len);
         combined.resize(header_len, 0u8);
-        header.encode(&mut combined[..header_len]).map_err(FramerError::Wire)?;
+        header
+            .encode(&mut combined[..header_len])
+            .map_err(FramerError::Wire)?;
         combined.extend_from_slice(payload);
 
         transport
@@ -188,8 +190,8 @@ impl std::error::Error for FramerError {}
 #[cfg(test)]
 mod tests {
     use super::*;
-    use po_wire::FrameType;
     use po_transport::MemoryTransport;
+    use po_wire::FrameType;
 
     #[tokio::test]
     async fn write_and_read_data_frame() {
@@ -200,7 +202,10 @@ mod tests {
         let payload = b"Hello Protocol Orzatty!";
         let header = FrameHeader::data(0, payload.len() as u64);
 
-        framer_w.write_frame(&mut a, &header, payload).await.unwrap();
+        framer_w
+            .write_frame(&mut a, &header, payload)
+            .await
+            .unwrap();
 
         let (recv_header, recv_payload) = framer_r.read_frame(&mut b).await.unwrap().unwrap();
         assert_eq!(recv_header.frame_type, FrameType::Data);
@@ -231,7 +236,10 @@ mod tests {
         for i in 0u8..10 {
             let payload = vec![i; (i as usize + 1) * 10];
             let header = FrameHeader::data(i as u32, payload.len() as u64);
-            framer_w.write_frame(&mut a, &header, &payload).await.unwrap();
+            framer_w
+                .write_frame(&mut a, &header, &payload)
+                .await
+                .unwrap();
         }
 
         for i in 0u8..10 {
@@ -261,7 +269,10 @@ mod tests {
 
         let payload = vec![0xAB; 100_000]; // 100KB
         let header = FrameHeader::data(1, payload.len() as u64);
-        framer_w.write_frame(&mut a, &header, &payload).await.unwrap();
+        framer_w
+            .write_frame(&mut a, &header, &payload)
+            .await
+            .unwrap();
 
         let (h, p) = framer_r.read_frame(&mut b).await.unwrap().unwrap();
         assert_eq!(h.payload_len, 100_000);

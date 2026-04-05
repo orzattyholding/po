@@ -3,9 +3,9 @@
 //! Every PO node has a persistent Ed25519 keypair. The `NodeId` is derived
 //! from the SHA-256 hash of the public key, giving a unique 32-byte identifier.
 
-use ed25519_dalek::{SigningKey, VerifyingKey, Signature, Signer, Verifier};
-use sha2::{Sha256, Digest};
+use ed25519_dalek::{Signature, Signer, SigningKey, Verifier, VerifyingKey};
 use rand::rngs::OsRng;
+use sha2::{Digest, Sha256};
 
 /// A 32-byte node identifier derived from the SHA-256 of the Ed25519 public key.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -52,7 +52,11 @@ impl Identity {
         let signing_key = SigningKey::generate(&mut OsRng);
         let verifying_key = signing_key.verifying_key();
         let node_id = NodeId::from_public_key(&verifying_key);
-        Self { signing_key, verifying_key, node_id }
+        Self {
+            signing_key,
+            verifying_key,
+            node_id,
+        }
     }
 
     /// Reconstruct identity from raw Ed25519 secret key bytes (32 bytes).
@@ -60,7 +64,11 @@ impl Identity {
         let signing_key = SigningKey::from_bytes(secret);
         let verifying_key = signing_key.verifying_key();
         let node_id = NodeId::from_public_key(&verifying_key);
-        Self { signing_key, verifying_key, node_id }
+        Self {
+            signing_key,
+            verifying_key,
+            node_id,
+        }
     }
 
     /// Get the node's unique identifier.

@@ -1,11 +1,11 @@
 //! Connection state machine for PO sessions.
 
-use po_crypto::aead::SessionCipher;
-use po_crypto::identity::{Identity, NodeId};
-use po_wire::{FrameHeader, FrameType};
-use po_transport::traits::AsyncFrameTransport;
 use crate::framer::Framer;
 use crate::handshake::{self, HandshakeError};
+use po_crypto::aead::SessionCipher;
+use po_crypto::identity::{Identity, NodeId};
+use po_transport::traits::AsyncFrameTransport;
+use po_wire::{FrameHeader, FrameType};
 
 /// The lifecycle state of a PO connection.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -69,12 +69,9 @@ impl Session {
     ) -> Result<(), HandshakeError> {
         self.state = SessionState::Handshaking;
 
-        let result = handshake::perform_handshake_initiator(
-            &self.identity,
-            transport,
-            &mut self.framer,
-        )
-        .await?;
+        let result =
+            handshake::perform_handshake_initiator(&self.identity, transport, &mut self.framer)
+                .await?;
 
         self.cipher = Some(result.cipher);
         self.peer_pubkey = Some(result.peer_pubkey);
@@ -91,12 +88,9 @@ impl Session {
     ) -> Result<(), HandshakeError> {
         self.state = SessionState::Handshaking;
 
-        let result = handshake::perform_handshake_responder(
-            &self.identity,
-            transport,
-            &mut self.framer,
-        )
-        .await?;
+        let result =
+            handshake::perform_handshake_responder(&self.identity, transport, &mut self.framer)
+                .await?;
 
         self.cipher = Some(result.cipher);
         self.peer_pubkey = Some(result.peer_pubkey);
@@ -122,11 +116,14 @@ impl Session {
         // Encode header bytes for AAD
         let header = FrameHeader::data(channel, 0).with_encrypted();
         let mut header_buf = [0u8; 32];
-        let header_len = header.encode(&mut header_buf).map_err(|e| SessionError::Wire(e.to_string()))?;
+        let header_len = header
+            .encode(&mut header_buf)
+            .map_err(|e| SessionError::Wire(e.to_string()))?;
         let aad = &header_buf[..header_len];
 
         // Encrypt payload
-        let encrypted = cipher.encrypt(data, aad)
+        let encrypted = cipher
+            .encrypt(data, aad)
             .map_err(|e| SessionError::Crypto(e.to_string()))?;
 
         // Update header with actual encrypted payload length
@@ -135,7 +132,9 @@ impl Session {
             ..header
         };
 
-        self.framer.write_frame(transport, &final_header, &encrypted).await
+        self.framer
+            .write_frame(transport, &final_header, &encrypted)
+            .await
             .map_err(|e| SessionError::Framer(e.to_string()))?;
 
         Ok(())
@@ -166,7 +165,9 @@ impl Session {
             match header.frame_type {
                 FrameType::Ping => {
                     let pong = FrameHeader::control(FrameType::Pong);
-                    self.framer.write_frame(transport, &pong, &[]).await
+                    self.framer
+                        .write_frame(transport, &pong, &[])
+                        .await
                         .map_err(|e| SessionError::Framer(e.to_string()))?;
                     continue; // Don't return pings to the caller
                 }
@@ -183,10 +184,12 @@ impl Session {
                         // Reconstruct AAD from the header (same process as sender)
                         let aad_header = FrameHeader::data(header.channel_id, 0).with_encrypted();
                         let mut aad_buf = [0u8; 32];
-                        let aad_len = aad_header.encode(&mut aad_buf)
+                        let aad_len = aad_header
+                            .encode(&mut aad_buf)
                             .map_err(|e| SessionError::Wire(e.to_string()))?;
 
-                        let decrypted = cipher.decrypt(&payload, &aad_buf[..aad_len])
+                        let decrypted = cipher
+                            .decrypt(&payload, &aad_buf[..aad_len])
                             .map_err(|e| SessionError::Crypto(e.to_string()))?;
 
                         return Ok(Some((header.channel_id, decrypted)));
@@ -210,7 +213,9 @@ impl Session {
 
         self.state = SessionState::Closing;
         let header = FrameHeader::control(FrameType::Close);
-        self.framer.write_frame(transport, &header, &[]).await
+        self.framer
+            .write_frame(transport, &header, &[])
+            .await
             .map_err(|e| SessionError::Framer(e.to_string()))?;
         self.state = SessionState::Closed;
 

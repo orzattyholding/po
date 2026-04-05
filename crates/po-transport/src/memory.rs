@@ -3,8 +3,8 @@
 //! Creates a pair of connected transports using tokio mpsc channels.
 //! Perfect for unit and integration tests.
 
-use tokio::sync::mpsc;
 use crate::traits::{AsyncFrameTransport, TransportError};
+use tokio::sync::mpsc;
 
 /// An in-memory transport backed by tokio mpsc channels.
 pub struct MemoryTransport {
