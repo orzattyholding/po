@@ -1,0 +1,21 @@
+[package]
+name = "po-session"
+description = "Session management, handshake state machine, and framing for Protocol Orzatty"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+keywords = ["session", "handshake", "state-machine", "protocol"]
+categories = ["network-programming"]
+
+[dependencies]
+po-wire = { workspace = true }
+po-crypto = { workspace = true }
+po-transport = { workspace = true }
+bincode = { workspace = true }
+serde = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+bytes = { workspace = true }
+ed25519-dalek = { workspace = true }

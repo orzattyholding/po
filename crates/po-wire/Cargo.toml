@@ -1,0 +1,20 @@
+[package]
+name = "po-wire"
+description = "Wire format codec for Protocol Orzatty — compact binary framing with QUIC-style VarInts"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+keywords = ["protocol", "binary", "framing", "varint", "no-std"]
+categories = ["encoding", "network-programming", "no-std"]
+
+# Zero external dependencies. Pure Rust. no_std compatible.
+[features]
+default = []
+std = []
+
+[dependencies]
+
+[dev-dependencies]
+# None needed — pure unit tests

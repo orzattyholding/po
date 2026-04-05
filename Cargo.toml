@@ -1,0 +1,62 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/po-wire",
+    "crates/po-crypto",
+    "crates/po-transport",
+    "crates/po-session",
+    "crates/po-node",
+    "po-cli", "benches/po-bench",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/orzattyholding/po"
+homepage = "https://orzatty.com"
+authors = ["Dylan Orzatty <dylan@orzatty.com>"]
+
+[workspace.dependencies]
+# Internal crates (path for local dev, version for crates.io publish)
+po-wire = { path = "crates/po-wire", version = "0.1.0" }
+po-crypto = { path = "crates/po-crypto", version = "0.1.0" }
+po-transport = { path = "crates/po-transport", version = "0.1.0" }
+po-session = { path = "crates/po-session", version = "0.1.0" }
+po-node = { path = "crates/po-node", version = "0.1.0" }
+
+# Async runtime
+tokio = { version = "1", features = ["full"] }
+
+# Crypto
+ed25519-dalek = { version = "2", features = ["rand_core"] }
+x25519-dalek = { version = "2", features = ["static_secrets"] }
+chacha20poly1305 = "0.10"
+rand = "0.8"
+sha2 = "0.10"
+hkdf = "0.12"
+zeroize = "1"
+
+# QUIC
+quinn = "0.11"
+rustls = { version = "0.23", default-features = false, features = ["ring", "std"] }
+rcgen = "0.13"
+
+# Serialization
+bincode = "1"
+serde = { version = "1", features = ["derive"] }
+
+# Utilities
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+dashmap = "6"
+bytes = "1"
+thiserror = "2"
+async-trait = "0.1"
+clap = { version = "4", features = ["derive"] }
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+strip = true

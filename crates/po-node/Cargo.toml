@@ -1,0 +1,19 @@
+[package]
+name = "po-node"
+description = "Complete PO node with peer discovery, connection management, and high-level API"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+keywords = ["p2p", "node", "discovery", "mesh"]
+categories = ["network-programming"]
+
+[dependencies]
+po-wire = { workspace = true }
+po-crypto = { workspace = true }
+po-transport = { workspace = true }
+po-session = { workspace = true }
+tokio = { workspace = true }
+dashmap = { workspace = true }
+tracing = { workspace = true }
