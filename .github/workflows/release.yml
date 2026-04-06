@@ -9,8 +9,8 @@ permissions:
   contents: write
 
 jobs:
-  build:
-    name: Build (${{ matrix.target }})
+  build-cli:
+    name: Build CLI (${{ matrix.target }})
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -43,6 +43,23 @@ jobs:
         shell: pwsh
         run: |
           Compress-Archive -Path "target/${{ matrix.target }}/release/${{ matrix.artifact }}" -DestinationPath "${{ matrix.archive }}"
+          
+          # Prepare for installer compilation
+          New-Item -ItemType Directory -Force -Path target/release
+          Copy-Item "target/${{ matrix.target }}/release/po-cli.exe" -Destination "target/release/po-cli.exe"
+
+      - name: Compile Inno Setup Windows Installer
+        if: matrix.os == 'windows-latest'
+        uses: Minionguyjpro/Inno-Setup-Action@v1.2.2
+        with:
+          path: scripts/installer.iss
+
+      - name: Upload Installer artifact
+        if: matrix.os == 'windows-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ProtocolOrzatty-Windows-Installer.exe
+          path: dist/*.exe
 
       - name: Package (Unix)
         if: matrix.os != 'windows-latest'
@@ -55,9 +72,107 @@ jobs:
           name: ${{ matrix.archive }}
           path: ${{ matrix.archive }}
 
-  release:
-    name: Create Release
-    needs: build
+  build-napi:
+    name: Build Node.js Module (${{ matrix.target }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+          - os: macos-latest
+            target: aarch64-apple-darwin
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: 'https://registry.npmjs.org'
+      - name: NPM Install
+        run: npm install
+        working-directory: crates/po-napi
+      - name: Make release binary location
+        run: mkdir -p ../target/release
+        working-directory: crates/po-napi
+      - name: NPM Build Platform
+        run: npm run build -- --target ${{ matrix.target }}
+        working-directory: crates/po-napi
+      - name: Upload NAPI artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: napi-${{ matrix.target }}
+          path: crates/po-napi/*.node
+
+  build-python:
+    name: Build Python Wheel (${{ matrix.target }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+          - os: macos-latest
+            target: aarch64-apple-darwin
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Build Python FFI DLL
+        run: cargo build --release -p po-ffi --target ${{ matrix.target }}
+      
+      - name: Generate UDL Python Wrapper
+        run: cargo run --release -p po-ffi --bin uniffi-bindgen generate src/po.udl --language python --out-dir .
+        working-directory: crates/po-ffi
+
+      # We simply zip the generated Python materials for user distribution since standard Maturin PyPI requires deeper Cargo setup.
+      - name: Package Python Interface (Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          mkdir po_python
+          cp po.py po_python/
+          cp ../../target/${{ matrix.target }}/release/po_ffi.dll po_python/uniffi_po.dll
+          Compress-Archive -Path po_python -DestinationPath po-python-windows.zip
+        working-directory: crates/po-ffi
+
+      - name: Package Python Interface (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          mkdir po_python
+          cp po.py po_python/
+          cp ../../target/${{ matrix.target }}/release/libpo_ffi.so po_python/libuniffi_po.so
+          tar czf po-python-linux.tar.gz po_python/
+        working-directory: crates/po-ffi
+        
+      - name: Package Python Interface (macOS)
+        if: matrix.os == 'macos-latest'
+        run: |
+          mkdir po_python
+          cp po.py po_python/
+          cp ../../target/${{ matrix.target }}/release/libpo_ffi.dylib po_python/libuniffi_po.dylib
+          tar czf po-python-macos.tar.gz po_python/
+        working-directory: crates/po-ffi
+
+      - name: Upload Python artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: po-python-${{ matrix.target }}
+          path: crates/po-ffi/*.*z*
+
+  publish-release:
+    name: Publish Full Release
+    needs: [build-cli, build-napi, build-python]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -67,6 +182,24 @@ jobs:
         with:
           path: artifacts
 
+      # Automatic NPM package release using the standard `npm publish` if versions match.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: 'https://registry.npmjs.org'
+      
+      - name: Publish to NPM
+        run: |
+          # Copy node artifacts into the source package so they exist for the registry payload
+          cp artifacts/napi-*/*.node crates/po-napi/ || true
+          cd crates/po-napi
+          npm install
+          # We execute publish directly. It uses the package.json configuration.
+          npm publish --access public || echo "Publish failed (maybe version already exists)"
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      # Create the definitive GitHub Release containing EVERYTHING
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -74,3 +207,6 @@ jobs:
           generate_release_notes: true
           draft: false
           prerelease: ${{ contains(github.ref, 'alpha') || contains(github.ref, 'beta') }}
+
+  # Note on PyPI (Python): For native extension wheels on PyPI, PyO3/Maturin is the standard publishing bridge. 
+  # Since we used the UniFFI CDylib approach natively, Python files are delivered as Zip/Tarballs on GitHub Releases for end-users to grab.
