@@ -26,8 +26,8 @@ AppPublisherURL={#MyAppURL}
 AppSupportURL={#MyAppURL}
 DefaultDirName={userpf}\{#MyAppName}
 DefaultGroupName={#MyAppName}
-LicenseFile=LICENSE
-OutputDir=dist
+LicenseFile=..\LICENSE
+OutputDir=..\dist
 OutputBaseFilename=ProtocolOrzatty-{#MyAppVersion}-Setup
 Compression=lzma2/ultra64
 SolidCompression=yes
@@ -55,12 +55,12 @@ spanish.WelcomeLabel2=Esto instalara [name/ver] en tu computadora.%n%nProtocol O
 Name: "addtopath"; Description: "Add 'po' to system PATH (recommended)"; GroupDescription: "Environment:"; Flags: checkedonce
 
 [Files]
-; The compiled CLI binary — renamed from po-cli.exe to po.exe
-Source: "target\release\po-cli.exe"; DestDir: "{app}"; DestName: "po.exe"; Flags: ignoreversion
+; The compiled CLI binary — copied to target\release by the GitHub Action
+Source: "..\target\release\po-cli.exe"; DestDir: "{app}"; DestName: "po.exe"; Flags: ignoreversion
 ; Documentation
-Source: "README.md"; DestDir: "{app}"; Flags: ignoreversion
-Source: "WHITEPAPER.md"; DestDir: "{app}"; Flags: ignoreversion
-Source: "LICENSE"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\README.md"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\WHITEPAPER.md"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\LICENSE"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
 Name: "{group}\Protocol Orzatty CLI"; Filename: "{cmd}"; Parameters: "/k ""{app}\po.exe"" --help"; WorkingDir: "{app}"

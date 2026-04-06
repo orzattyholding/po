@@ -16,3 +16,9 @@ desktop.ini
 # Rust
 **/*.rs.bk
 Cargo.lock
+
+# Node.js and FFI artifacts
+node_modules/
+*.node
+po.py
+po_python/
