@@ -3,22 +3,33 @@ uniffi::include_scaffolding!("po");
 use po_node::Po;
 use tokio::runtime::Runtime;
 
-#[derive(Debug, thiserror::Error)]
+use std::fmt;
+
+#[derive(Debug)]
 pub enum PoFfiError {
-    #[error("Config error: {0}")]
     Config(String),
-    #[error("Transport error: {0}")]
     Transport(String),
-    #[error("Handshake error: {0}")]
     Handshake(String),
-    #[error("Session error: {0}")]
     Session(String),
-    #[error("Generic error: {0}")]
     Generic(String),
 }
 
+impl fmt::Display for PoFfiError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Config(msg) => write!(f, "Config error: {}", msg),
+            Self::Transport(msg) => write!(f, "Transport error: {}", msg),
+            Self::Handshake(msg) => write!(f, "Handshake error: {}", msg),
+            Self::Session(msg) => write!(f, "Session error: {}", msg),
+            Self::Generic(msg) => write!(f, "Generic error: {}", msg),
+        }
+    }
+}
+
+impl std::error::Error for PoFfiError {}
+
 pub struct PoClient {
-    inner: Po,
+    inner: std::sync::Mutex<Po>,
     rt: Runtime,
 }
 
@@ -45,16 +56,16 @@ impl PoClient {
             po_node::node::PoError::Session(msg) => PoFfiError::Session(msg),
         })?;
 
-        Ok(Self { inner, rt })
+        Ok(Self { inner: std::sync::Mutex::new(inner), rt })
     }
 
     pub fn node_id(&self) -> String {
-        self.inner.node_id()
+        self.inner.lock().unwrap().node_id()
     }
 
     pub fn send(&self, data: Vec<u8>) -> Result<(), PoFfiError> {
         self.rt.block_on(async {
-            self.inner.send(&data).await
+            self.inner.lock().unwrap().send(&data).await
         }).map_err(|e| match e {
             po_node::node::PoError::Session(msg) => PoFfiError::Session(msg),
             _ => PoFfiError::Generic(e.to_string()),
@@ -63,7 +74,7 @@ impl PoClient {
 
     pub fn recv(&self) -> Result<Option<Vec<u8>>, PoFfiError> {
         self.rt.block_on(async {
-            self.inner.recv().await
+            self.inner.lock().unwrap().recv().await
                 .map(|opt| opt.map(|(_channel, packet)| packet))
         }).map_err(|e| match e {
             po_node::node::PoError::Session(msg) => PoFfiError::Session(msg),
@@ -71,9 +82,9 @@ impl PoClient {
         })
     }
 
-    pub fn close(&mut self) -> Result<(), PoFfiError> {
+    pub fn close(&self) -> Result<(), PoFfiError> {
         self.rt.block_on(async {
-            self.inner.close().await
+            self.inner.lock().unwrap().close().await
         }).map_err(|e| match e {
             po_node::node::PoError::Session(msg) => PoFfiError::Session(msg),
             _ => PoFfiError::Generic(e.to_string()),
