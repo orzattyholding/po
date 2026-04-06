@@ -197,7 +197,7 @@ jobs:
           cd crates/po-napi
           npm install
           # We execute publish directly. It uses the package.json configuration.
-          npm publish --access public || echo "Publish failed (maybe version already exists)"
+          npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
