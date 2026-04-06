@@ -1,0 +1,19 @@
+[package]
+name = "po-napi"
+version = "0.1.0"
+edition = "2021"
+authors = ["Dylan Orzatty <dylan@orzatty.com>"]
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+napi = { version = "2.16.4", features = ["async", "napi4", "tokio_rt"] }
+napi-derive = "2.16.2"
+tokio = { workspace = true }
+po-node = { workspace = true }
+po-session = { workspace = true }
+
+[build-dependencies]
+napi-build = "2.1.3"

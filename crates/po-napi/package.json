@@ -1,0 +1,20 @@
+{
+  "name": "@orzatty/po",
+  "version": "0.1.0",
+  "description": "Protocol Orzatty Node.js bindings (P2P E2EE QUIC)",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "napi": {
+    "name": "po-napi"
+  },
+  "scripts": {
+    "build": "napi build --platform --release",
+    "build:debug": "napi build --platform",
+    "test": "node demo_node.js"
+  },
+  "author": "Dylan Orzatty",
+  "license": "MIT",
+  "devDependencies": {
+    "@napi-rs/cli": "^2.18.0"
+  }
+}

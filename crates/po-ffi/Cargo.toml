@@ -1,0 +1,18 @@
+[package]
+name = "po-ffi"
+version = "0.1.0"
+edition = "2021"
+authors = ["Dylan Orzatty <dylan@orzatty.com>"]
+publish = false
+
+[lib]
+crate-type = ["cdylib", "staticlib", "lib"]
+name = "po_ffi"
+
+[dependencies]
+uniffi = "0.28"
+po-node = { workspace = true }
+tokio = { workspace = true }
+
+[build-dependencies]
+uniffi = { version = "0.28", features = ["build"] }

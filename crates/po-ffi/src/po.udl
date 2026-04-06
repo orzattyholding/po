@@ -1,0 +1,27 @@
+namespace po {
+    // Top-level error
+    [Error]
+    enum PoFfiError {
+        "Config",
+        "Transport",
+        "Handshake",
+        "Session",
+        "Generic",
+    };
+};
+
+interface PoClient {
+    [Throws=PoFfiError]
+    constructor(string bind_address_or_port, string? remote_address);
+
+    string node_id();
+
+    [Throws=PoFfiError]
+    void send(bytes data);
+
+    [Throws=PoFfiError]
+    bytes? recv();
+
+    [Throws=PoFfiError]
+    void close();
+};

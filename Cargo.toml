@@ -6,7 +6,7 @@ members = [
     "crates/po-transport",
     "crates/po-session",
     "crates/po-node",
-    "po-cli", "benches/po-bench", "crates/po-napi", "crates/po-ffi",
+    "crates/po-cli", "benches/po-bench", "crates/po-napi", "crates/po-ffi",
 ]
 
 [workspace.package]
