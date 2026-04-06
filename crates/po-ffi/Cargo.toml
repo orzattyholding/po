@@ -10,7 +10,7 @@ crate-type = ["cdylib", "staticlib", "lib"]
 name = "po_ffi"
 
 [dependencies]
-uniffi = "0.28"
+uniffi = { version = "0.28", features = ["cli"] }
 po-node = { workspace = true }
 tokio = { workspace = true }
 

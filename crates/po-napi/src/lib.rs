@@ -20,7 +20,7 @@ impl PoClient {
         let po = Po::bind(port as u16)
             .await
             .map_err(|e| Error::new(Status::GenericFailure, format!("Bind error: {e:?}")))?;
-            
+
         let node_id = po.node_id();
         Ok(PoClient {
             inner: Arc::new(Mutex::new(po)),
@@ -34,7 +34,7 @@ impl PoClient {
         let po = Po::connect(&address)
             .await
             .map_err(|e| Error::new(Status::GenericFailure, format!("Connect error: {e:?}")))?;
-            
+
         let node_id = po.node_id();
         Ok(PoClient {
             inner: Arc::new(Mutex::new(po)),
@@ -58,7 +58,7 @@ impl PoClient {
         Ok(())
     }
 
-    /// Receive a Buffer of data from the peer. 
+    /// Receive a Buffer of data from the peer.
     /// Returns undefined if the stream is closed gracefully.
     #[napi]
     pub async fn recv(&self) -> Result<Option<Buffer>> {
@@ -66,7 +66,10 @@ impl PoClient {
         match po.recv().await {
             Ok(Some((_channel, data))) => Ok(Some(data.into())),
             Ok(None) => Ok(None),
-            Err(e) => Err(Error::new(Status::GenericFailure, format!("Recv error: {e:?}"))),
+            Err(e) => Err(Error::new(
+                Status::GenericFailure,
+                format!("Recv error: {e:?}"),
+            )),
         }
     }
 
