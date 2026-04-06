@@ -124,8 +124,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Generate deterministic payload
     let mut bulk_data = vec![0u8; payload_size];
-    for i in 0..payload_size {
-        bulk_data[i] = (i % 256) as u8;
+    for (i, byte) in bulk_data.iter_mut().enumerate().take(payload_size) {
+        *byte = (i % 256) as u8;
     }
 
     // WS Throughput
@@ -159,7 +159,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     );
 
     let tp_ratio = ws_mbps / po_mbps;
-    let num_chunks = (payload_size + chunk_size - 1) / chunk_size;
+    let num_chunks = payload_size.div_ceil(chunk_size);
     println!(
         "   📊 Throughput ratio:   {:.1}x (WS faster, {} chunks × encrypt+frame)",
         tp_ratio, num_chunks
