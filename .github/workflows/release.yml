@@ -184,6 +184,45 @@ jobs:
         with:
           path: artifacts
 
+      - name: Prepare Artifacts
+        run: |
+          # Distribute node artifacts
+          cp artifacts/napi-*/*.node crates/po-napi/ || true
+          # Distribute python artifacts
+          cp artifacts/po-python-x86_64*/*.dll crates/po-ffi/ || true
+          cp artifacts/po-python-x86_64-unknown*/*.so crates/po-ffi/ || true
+          cp artifacts/po-python-aar*/*.dylib crates/po-ffi/ || true
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: 'https://registry.npmjs.org'
+      
+      - name: Publish to NPM
+        run: |
+          cd crates/po-napi
+          npm install
+          npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Build Python Dist
+        run: |
+          cd crates/po-ffi
+          pip install wheel twine
+          python setup.py sdist bdist_wheel
+        
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: crates/po-ffi/dist/
+          password: ${{ secrets.PYPI_TOKEN }}
+
       # Create the definitive GitHub Release containing EVERYTHING
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
