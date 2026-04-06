@@ -184,23 +184,6 @@ jobs:
         with:
           path: artifacts
 
-      # Automatic NPM package release using the standard `npm publish` if versions match.
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          registry-url: 'https://registry.npmjs.org'
-      
-      - name: Publish to NPM
-        run: |
-          # Copy node artifacts into the source package so they exist for the registry payload
-          cp artifacts/napi-*/*.node crates/po-napi/ || true
-          cd crates/po-napi
-          npm install
-          # We execute publish directly. It uses the package.json configuration.
-          npm publish --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
       # Create the definitive GitHub Release containing EVERYTHING
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
