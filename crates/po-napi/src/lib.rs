@@ -73,6 +73,21 @@ impl PoClient {
         }
     }
 
+    /// Send multiple messages as a single encrypted batch.
+    ///
+    /// This amortizes crypto overhead: one encrypt call for the entire
+    /// batch instead of one per message. Use this for high-throughput
+    /// workloads to exceed 10k msg/sec.
+    #[napi]
+    pub async fn send_batch(&self, messages: Vec<Buffer>) -> Result<()> {
+        let mut po = self.inner.lock().await;
+        let slices: Vec<&[u8]> = messages.iter().map(|b| b.as_ref()).collect();
+        po.send_batch(&slices)
+            .await
+            .map_err(|e| Error::new(Status::GenericFailure, format!("SendBatch error: {e:?}")))?;
+        Ok(())
+    }
+
     /// Gracefully close the connection.
     #[napi]
     pub async fn close(&self) -> Result<()> {

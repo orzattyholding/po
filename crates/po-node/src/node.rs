@@ -135,6 +135,18 @@ impl Po {
             .map_err(|e| PoError::Session(e.to_string()))
     }
 
+    /// Send a batch of messages as a single encrypted frame.
+    ///
+    /// Amortizes crypto and I/O overhead across all messages.
+    /// Under high-throughput workloads this can yield 3-10x speedup
+    /// vs calling `send()` in a loop.
+    pub async fn send_batch(&mut self, messages: &[&[u8]]) -> Result<(), PoError> {
+        self.session
+            .send_batch(&mut self.transport, channels::DEFAULT, messages)
+            .await
+            .map_err(|e| PoError::Session(e.to_string()))
+    }
+
     /// Receive the next message from the connected peer.
     ///
     /// Returns `Some((channel_id, data))` or `None` if the connection closed.

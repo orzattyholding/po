@@ -1,0 +1,18 @@
+[package]
+name = "po-c"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+authors.workspace = true
+
+[lib]
+crate-type = ["cdylib", "staticlib"]
+
+[dependencies]
+tokio = { workspace = true }
+po-node = { workspace = true }
+
+[build-dependencies]
+cbindgen = "0.24"

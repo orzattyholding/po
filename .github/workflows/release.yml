@@ -172,9 +172,63 @@ jobs:
           name: po-python-${{ matrix.target }}
           path: crates/po-ffi/*.*z*
 
+  build-native-sdk:
+    name: Build Native C SDK (${{ matrix.target }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            lib_ext: dll
+            static_ext: lib
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            lib_ext: so
+            static_ext: a
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            lib_ext: dylib
+            static_ext: a
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Build po-c (native SDK)
+        run: cargo build --release -p po-c --target ${{ matrix.target }}
+
+      - name: Package SDK (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path po-native-sdk
+          Copy-Item "crates/po-c/po.h" "po-native-sdk/" -ErrorAction SilentlyContinue
+          Copy-Item "target/${{ matrix.target }}/release/po_c.dll" "po-native-sdk/" -ErrorAction SilentlyContinue
+          Copy-Item "target/${{ matrix.target }}/release/po_c.lib" "po-native-sdk/" -ErrorAction SilentlyContinue
+          Copy-Item "target/${{ matrix.target }}/release/po_c.dll.lib" "po-native-sdk/" -ErrorAction SilentlyContinue
+          Compress-Archive -Path "po-native-sdk" -DestinationPath "po-native-sdk-windows-x64.zip"
+
+      - name: Package SDK (Unix)
+        if: matrix.os != 'windows-latest'
+        run: |
+          mkdir -p po-native-sdk
+          cp crates/po-c/po.h po-native-sdk/ 2>/dev/null || true
+          cp target/${{ matrix.target }}/release/libpo_c.${{ matrix.lib_ext }} po-native-sdk/ 2>/dev/null || true
+          cp target/${{ matrix.target }}/release/libpo_c.${{ matrix.static_ext }} po-native-sdk/ 2>/dev/null || true
+          tar czf po-native-sdk-${{ matrix.target }}.tar.gz po-native-sdk/
+
+      - name: Upload SDK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: po-native-sdk-${{ matrix.target }}
+          path: po-native-sdk-*
+
   publish-release:
     name: Publish Full Release
-    needs: [build-cli, build-napi, build-python]
+    needs: [build-cli, build-napi, build-python, build-native-sdk]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

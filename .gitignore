@@ -22,3 +22,8 @@ node_modules/
 *.node
 po.py
 po_python/
+
+# Benchmark temp files
+scripts/node_modules/
+scripts/package-lock.json
+scripts/benchmark_results.json

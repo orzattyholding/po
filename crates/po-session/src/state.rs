@@ -140,6 +140,61 @@ impl Session {
         Ok(())
     }
 
+    /// Send a batch of messages as a single encrypted frame.
+    ///
+    /// Each message is length-prefixed (4 bytes LE) so the receiver can
+    /// split them back apart. The entire concatenated buffer is encrypted
+    /// in **one single** cipher operation, amortizing crypto overhead across
+    /// all messages in the batch.
+    pub async fn send_batch(
+        &mut self,
+        transport: &mut dyn AsyncFrameTransport,
+        channel: u32,
+        messages: &[&[u8]],
+    ) -> Result<(), SessionError> {
+        if self.state != SessionState::Established {
+            return Err(SessionError::NotEstablished);
+        }
+
+        let cipher = self.cipher.as_mut().ok_or(SessionError::NoCipher)?;
+
+        // Build length-prefixed envelope: [count(4)] + [len(4) + data]...
+        let total_payload: usize = 4 + messages.iter().map(|m| 4 + m.len()).sum::<usize>();
+        let mut plaintext = Vec::with_capacity(total_payload);
+
+        // Message count header
+        plaintext.extend_from_slice(&(messages.len() as u32).to_le_bytes());
+        for msg in messages {
+            plaintext.extend_from_slice(&(msg.len() as u32).to_le_bytes());
+            plaintext.extend_from_slice(msg);
+        }
+
+        // Compute AAD from the frame header
+        let header = FrameHeader::data(channel, 0).with_encrypted();
+        let mut header_buf = [0u8; 32];
+        let header_len = header
+            .encode(&mut header_buf)
+            .map_err(|e| SessionError::Wire(e.to_string()))?;
+        let aad = &header_buf[..header_len];
+
+        // Single encrypt call for the entire batch
+        let encrypted = cipher
+            .encrypt(&plaintext, aad)
+            .map_err(|e| SessionError::Crypto(e.to_string()))?;
+
+        let final_header = FrameHeader {
+            payload_len: encrypted.len() as u64,
+            ..header
+        };
+
+        self.framer
+            .write_frame(transport, &final_header, &encrypted)
+            .await
+            .map_err(|e| SessionError::Framer(e.to_string()))?;
+
+        Ok(())
+    }
+
     /// Receive the next message. Returns `(channel_id, decrypted_data)`.
     ///
     /// Automatically handles control frames (Ping/Pong/Close).
