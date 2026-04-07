@@ -1,9 +1,4 @@
-from setuptools import setup, Distribution
-
-class BinaryDistribution(Distribution):
-    """Distribution which always forces a binary package with platform name"""
-    def has_ext_modules(self):
-        return True
+from setuptools import setup
 
 setup(
     name="protocol-orzatty",
@@ -16,5 +11,4 @@ setup(
         "": ["*.so", "*.dll", "*.dylib"]
     },
     include_package_data=True,
-    distclass=BinaryDistribution,
 )
