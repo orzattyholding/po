@@ -1,5 +1,5 @@
 {
-  "name": "@orzatty/po",
+  "name": "@orzattyholding/po",
   "version": "0.1.0",
   "description": "Protocol Orzatty Node.js bindings (P2P E2EE QUIC)",
   "main": "index.js",
