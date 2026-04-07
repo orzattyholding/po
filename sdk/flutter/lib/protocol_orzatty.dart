@@ -6,6 +6,7 @@ library protocol_orzatty;
 
 import 'dart:ffi';
 import 'dart:io' show Platform;
+import 'package:ffi/ffi.dart';
 
 /// Load the native PO library based on the current platform.
 DynamicLibrary _loadPoLibrary() {
