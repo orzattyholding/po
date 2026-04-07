@@ -1,4 +1,6 @@
-use std::ffi::{CStr, CString};
+#![allow(clippy::not_unsafe_ptr_arg_deref)]
+
+use std::ffi::CStr;
 use std::os::raw::c_char;
 use std::ptr;
 use tokio::runtime::Runtime;
@@ -19,12 +21,20 @@ pub extern "C" fn po_client_new(
         return ptr::null_mut();
     }
 
-    let bind_str = unsafe { CStr::from_ptr(bind_address_or_port).to_string_lossy().into_owned() };
-    
+    let bind_str = unsafe {
+        CStr::from_ptr(bind_address_or_port)
+            .to_string_lossy()
+            .into_owned()
+    };
+
     let remote_str = if remote_address.is_null() {
         None
     } else {
-        Some(unsafe { CStr::from_ptr(remote_address).to_string_lossy().into_owned() })
+        Some(unsafe {
+            CStr::from_ptr(remote_address)
+                .to_string_lossy()
+                .into_owned()
+        })
     };
 
     let rt = match Runtime::new() {
@@ -54,21 +64,16 @@ pub extern "C" fn po_client_new(
 }
 
 #[no_mangle]
-pub extern "C" fn po_client_send(
-    client: *mut PoClientC,
-    data: *const u8,
-    len: usize,
-) -> i32 {
+pub extern "C" fn po_client_send(client: *mut PoClientC, data: *const u8, len: usize) -> i32 {
     if client.is_null() || data.is_null() {
         return -1;
     }
-    
+
     let c = unsafe { &*client };
     let payload = unsafe { std::slice::from_raw_parts(data, len) };
 
-    let res = c.rt.block_on(async {
-        c.inner.lock().await.send(payload).await
-    });
+    let res =
+        c.rt.block_on(async { c.inner.lock().await.send(payload).await });
 
     match res {
         Ok(_) => 0,
