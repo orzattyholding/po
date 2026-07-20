@@ -4,7 +4,7 @@
 </p>
 
 <p align="center">
-  <a href="https://orzatty.com">Website</a> ·
+  <a href="https://protocol.orzatty.com">Website</a> ·
   <a href="./WHITEPAPER.md">White Paper</a> ·
   <a href="#quick-start">Quick Start</a> ·
   <a href="#architecture">Architecture</a>
